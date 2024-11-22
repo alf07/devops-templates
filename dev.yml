@@ -1,0 +1,54 @@
+name: Deploy to Developer
+
+on:
+  push:
+    branches:
+    - developer
+
+jobs:
+  deploy:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to Developer
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.0-beta
+        with:
+          server: ${{ secrets.DEV_FTP_SERVER }}
+          username: ${{ secrets.DEV_FTP_USERNAME }}
+          password: ${{ secrets.DEV_FTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          server-dir:  /www/lomovorot.online/
+          timeout: 3600
+          exclude: |
+            /git/
+            **/.git*
+            **/.git*/**
+            **/.github*
+            **/.github/**
+            /node_modules/
+            **/node_modules/**
+            /vendor/*
+            /vendor/
+            **/vendor/**
+            composer.json
+            composer.lock
+            ecosystem.config.js
+            package.json
+            package-lock.json
+            vite.config.js
+            .env
+            
+      - name: ssh command
+        uses: nekiro/ssh-job@main
+        with:
+          host: ${{ secrets.DEV_FTP_SERVER }}
+          password: ${{ secrets.DEV_SSH_PASSWORD }}
+          user: ${{ secrets.DEV_SSH_NAME }}
+          command: |
+            cd /var/www/www-root/data/www/lomovorot.online/
+            npm run build
+            php artisan route:cache
+            php artisan cache:clear
