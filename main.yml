@@ -1,0 +1,69 @@
+name: Деплой на продовые сервера
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        server: [server1]
+        include:
+          - server: server1
+            server_name: vtormet
+            host: 79.174.82.62
+            user: www-data
+            ssh_key_secret: SSH_KEY_S1
+            deploy_path: /var/www/laravel-api/
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets[matrix.ssh_key_secret] }}" > ~/.ssh/private_key
+          chmod 600 ~/.ssh/private_key
+          ssh-keyscan -H ${{ matrix.host }} >> ~/.ssh/known_hosts
+
+      - name: Deploy via RSYNC
+        run: |
+          rsync -avz -e "ssh -i ~/.ssh/private_key -o StrictHostKeyChecking=no" \
+            --delete \
+            --exclude='node_modules' \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.nuxt' \
+            --exclude='*.log' \
+            --exclude='.env' \
+            --exclude='uploads' \
+            --exclude='vendor' \
+            --exclude='storage' \
+            --exclude='database' \
+            --exclude='public' \
+            --exclude='ecosystem.config.cjs' \
+            --exclude='package-lock.json' \
+            --exclude='package.json' \
+            --exclude='tsconfig.json' \
+            --exclude='nuxt.config.ts' \
+            ./ ${{ matrix.user }}@${{ matrix.host }}:${{ matrix.deploy_path }}
+
+      - name: Run deployment commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ matrix.host }}
+          username: ${{ matrix.user }}
+          key: ${{ secrets[matrix.ssh_key_secret] }}
+          script: |
+            echo "Переходим в нужную директорию"
+            cd ${{ matrix.deploy_path }}
+            
+            echo "Чистим кеши"
+            /opt/php84/bin/php artisan config:cache
+            /opt/php84/bin/php artisan route:cache
+            /opt/php84/bin/php artisan cache:clear
+            
+            echo "✅ Готова"
