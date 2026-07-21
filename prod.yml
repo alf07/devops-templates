@@ -1,4 +1,4 @@
-name: Deploy to Prod
+name: Деплой по ftp
 
 on:
   push:
@@ -9,18 +9,18 @@ jobs:
   deploy:
     runs-on: ubuntu-20.04
     steps:
-      - name: Checkout Repository
+      - name: Выбираем репозиторий
         uses: actions/checkout@v4
 
-      - name: Deploy to ftp
+      - name: Загружаем файлы по ftp
         uses: SamKirkland/FTP-Deploy-Action@v4.3.0-beta
         with:
-          server: ${{ secrets.DEV_FTP_SERVER }}
-          username: ${{ secrets.DEV_FTP_USERNAME }}
-          password: ${{ secrets.DEV_FTP_PASSWORD }}
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftp
           port: 21
-          server-dir:  /www/lomovorot.ru/
+          server-dir:  /var/www/exemple.ru/
           timeout: 3600
           exclude: |
             /git/
@@ -41,14 +41,20 @@ jobs:
             vite.config.js
             .env
             
-      - name: ssh command
+      - name: Выполнение ssh команд
         uses: nekiro/ssh-job@main
         with:
-          host: ${{ secrets.DEV_FTP_SERVER }}
-          password: ${{ secrets.DEV_SSH_PASSWORD }}
-          user: ${{ secrets.DEV_SSH_NAME }}
+          host: ${{ secrets.FTP_SERVER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          user: ${{ secrets.SSH_NAME }}
           command: |
-            cd /var/www/www-root/data/www/lomovorot.ru/
+            echo "Общее"
+            cd /var/www/exemple.ru/
+            
+            echo "Nuxt"
             npm run build
+            pm2 restart all
+            
+            echo "Laravel"
             php artisan route:cache
             php artisan cache:clear
