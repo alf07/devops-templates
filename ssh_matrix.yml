@@ -1,4 +1,4 @@
-name: Деплой на продовые сервера
+name: Деплой по SSH
 
 on:
   push:
@@ -6,30 +6,30 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         server: [server1]
         include:
           - server: server1
-            server_name: vtormet
-            host: 79.174.82.62
+            server_name: server1
+            host: 192.168.0.1
             user: www-data
-            ssh_key_secret: SSH_KEY_S1
-            deploy_path: /var/www/laravel-api/
+            ssh_key_secret: SSH_KEY
+            deploy_path: /var/www/exemple.ru/
 
     steps:
-      - name: Checkout code
+      - name: Выбор репозиторий
         uses: actions/checkout@v4
 
-      - name: Setup SSH
+      - name: Настройка SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets[matrix.ssh_key_secret] }}" > ~/.ssh/private_key
           chmod 600 ~/.ssh/private_key
           ssh-keyscan -H ${{ matrix.host }} >> ~/.ssh/known_hosts
 
-      - name: Deploy via RSYNC
+      - name: Загрузка файлов с помощью RSYNC
         run: |
           rsync -avz -e "ssh -i ~/.ssh/private_key -o StrictHostKeyChecking=no" \
             --delete \
@@ -51,7 +51,7 @@ jobs:
             --exclude='nuxt.config.ts' \
             ./ ${{ matrix.user }}@${{ matrix.host }}:${{ matrix.deploy_path }}
 
-      - name: Run deployment commands
+      - name: Выполнение ssh команд
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ matrix.host }}
@@ -62,8 +62,6 @@ jobs:
             cd ${{ matrix.deploy_path }}
             
             echo "Чистим кеши"
-            /opt/php84/bin/php artisan config:cache
-            /opt/php84/bin/php artisan route:cache
-            /opt/php84/bin/php artisan cache:clear
-            
-            echo "✅ Готова"
+            php artisan config:cache
+            php artisan route:cache
+            php artisan cache:clear
