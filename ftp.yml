@@ -1,4 +1,4 @@
-name: Деплой по ftp
+name: Деплой по FTP
 
 on:
   push:
@@ -9,10 +9,10 @@ jobs:
   deploy:
     runs-on: ubuntu-20.04
     steps:
-      - name: Выбираем репозиторий
+      - name: Выбор репозитория
         uses: actions/checkout@v4
 
-      - name: Загружаем файлы по ftp
+      - name: Загрузка файлов по ftp
         uses: SamKirkland/FTP-Deploy-Action@v4.3.0-beta
         with:
           server: ${{ secrets.FTP_SERVER }}
