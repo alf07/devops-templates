@@ -1,3 +1,6 @@
+<img width="3750" height="1969" alt="devops-templates" src="https://github.com/user-attachments/assets/bbba9363-6349-4fa5-9829-a77c9329628c" />
+
+
 # DevOps Templates
 
 Обобщённые и обезличенные примеры конфигураций CI/CD и скриптов автоматизации, которые я использовал в реальных коммерческих проектах.
