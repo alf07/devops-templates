@@ -17,6 +17,7 @@
 - **`scripts/`** — bash-скрипты для администрирования:
     - [`check_ssl.sh`](scripts/check_ssl.sh) – мониторинг срока действия SSL-сертификата с уведомлением в Telegram.
     - [`check_http.sh`](scripts/check_http.sh) – мониторинг HTTP-статуса сайта с уведомлением в Telegram.
+    - [`sudo_monitor.sh`](https://github.com/alf07/devops-templates/blob/main/scripts/sudo_monitor.sh) – мониторинг использования `sudo` в реальном времени с уведомлением в Telegram.
 
 ---
 
@@ -42,3 +43,4 @@
    ```bash
    ./scripts/check_ssl.sh example.com 443
    ./scripts/check_http.sh example.com
+   ./scripts/sudo_monitor.sh
