@@ -1,5 +1,4 @@
-<img width="3750" height="1969" alt="devops-templates" src="https://github.com/user-attachments/assets/bbba9363-6349-4fa5-9829-a77c9329628c" />
-
+![DevOps Templates](https://github.com/user-attachments/assets/bbba9363-6349-4fa5-9829-a77c9329628c)
 
 # DevOps Templates
 
@@ -11,13 +10,14 @@
 
 ## 📁 Содержание
 
-- **`.github/workflows/`** — примеры GitHub Actions workflow:
-    - [`ssh_matrix.yml`](github/ssh_matrix.yml) – деплой на сервер через `rsync` + выполнение команд по SSH (очистка кеша, перезапуск).
-    - [`ftp.yml`](github/ftp.yml) – деплой на сервер по FTP + выполнение команд по SSH (сборка фронта, очистка кеша).
+- **`github/`** — примеры GitHub Actions workflow:
+  - [`ssh_matrix.yml`](github/ssh_matrix.yml) — деплой на сервер через `rsync` и выполнение команд по SSH (очистка кеша, перезапуск).
+  - [`ftp.yml`](github/ftp.yml) — деплой на сервер по FTP и выполнение команд по SSH (сборка фронтенда, очистка кеша).
+  - [`laravel.yml`](github/laravel.yml) — деплой Laravel по FTP и SSH с проверкой синтаксиса PHP, запуском тестов, установкой зависимостей и обновлением кеша.
 - **`scripts/`** — bash-скрипты для администрирования:
-    - [`check_ssl.sh`](scripts/check_ssl.sh) – мониторинг срока действия SSL-сертификата с уведомлением в Telegram.
-    - [`check_http.sh`](scripts/check_http.sh) – мониторинг HTTP-статуса сайта с уведомлением в Telegram.
-    - [`sudo_monitor.sh`](https://github.com/alf07/devops-templates/blob/main/scripts/sudo_monitor.sh) – мониторинг использования `sudo` в реальном времени с уведомлением в Telegram.
+  - [`check_ssl.sh`](scripts/check_ssl.sh) — мониторинг срока действия SSL-сертификата с уведомлением в Telegram.
+  - [`check_http.sh`](scripts/check_http.sh) — мониторинг HTTP-статуса сайта с уведомлением в Telegram.
+  - [`sudo_monitor.sh`](scripts/sudo_monitor.sh) — мониторинг использования `sudo` в реальном времени с уведомлением в Telegram.
 
 ---
 
@@ -25,22 +25,63 @@
 
 ### 1. CI/CD (GitHub Actions)
 
-1. Скопируйте нужный workflow-файл в свой репозиторий (в папку `.github/workflows/`).
-2. Замените все плейсхолдеры (домены, пути, имена пользователей) на свои реальные значения.
-3. Настройте секреты в GitHub (`Settings → Secrets and variables → Actions`):
-    - `SSH_KEY` — приватный ключ для доступа к серверу (для `ssh_matrix.yml`).
-    - `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `SSH_PASSWORD` и другие — для `ftp.yml`.
-4. Адаптируйте команды под свой стек (версия PHP, менеджер пакетов, фреймворк).
+1. Выберите нужный workflow-файл из папки `github/`.
+2. Скопируйте его в свой репозиторий в папку `.github/workflows/`.
+3. Замените шаблонные значения (домены, пути, имена пользователей) на свои.
+4. Настройте секреты в GitHub (`Settings → Secrets and variables → Actions`).
+5. Адаптируйте команды под свой стек и конфигурацию сервера.
+
+Для разных шаблонов используются следующие секреты:
+
+- **`ssh_matrix.yml`** — `SSH_KEY` и другие параметры подключения к серверу.
+- **`ftp.yml`** — `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `SSH_PASSWORD`, `SSH_NAME`.
+- **`laravel.yml`** — `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `SSH_HOST`, `SSH_USERNAME`, `SSH_KEY`.
+
+#### Деплой Laravel
+
+Шаблон `laravel.yml` предназначен для автоматического развёртывания Laravel-приложения при отправке изменений в ветку `main`.
+
+Последовательность выполнения:
+
+1. Подготовка окружения PHP.
+2. Проверка синтаксиса PHP.
+3. Проверка конфигурации Composer.
+4. Установка зависимостей для тестирования.
+5. Запуск тестов Laravel.
+6. Загрузка файлов приложения по FTP.
+7. Проверка прав на запись в каталоги `storage` и `bootstrap/cache` через SSH.
+8. Установка production-зависимостей Composer на сервере.
+9. Очистка и создание кеша Laravel.
+
+**Перед использованием:**
+
+- Укажите путь к приложению на сервере в настройках FTP и SSH-командах.
+- Убедитесь, что на сервере установлены PHP и Composer.
+- Настройте `.env` непосредственно на сервере.
+- Проверьте права пользователя PHP на запись в `storage` и `bootstrap/cache`.
+- Подготовьте тестовое окружение и базу данных для запуска тестов.
+- Согласуйте версию PHP в workflow с требованиями проекта и версией PHP на сервере.
+
+Шаблон не выполняет миграции базы данных автоматически. При необходимости команду `php artisan migrate --force` можно добавить в SSH-сценарий.
+
+Также обратите внимание: для работы `route:cache` маршруты приложения должны поддерживать кеширование.
 
 ### 2. Скрипты мониторинга (Telegram-уведомления)
 
 1. Скопируйте нужный скрипт из папки `scripts/` на сервер.
-2. Создайте Telegram-бота (через [@BotFather](https://t.me/botfather)) и получите `bot_token`.
+2. Создайте Telegram-бота через [@BotFather](https://t.me/BotFather) и получите `bot_token`.
 3. Получите свой `chat_id` (можно написать боту любое сообщение и вызвать `getUpdates`).
-4. Вставьте `bot_token` и `chat_id` в переменные внутри скрипта (в начале файла).
-5. Дайте скрипту права на выполнение: `chmod +x check_*.sh`
+4. Укажите `bot_token` и `chat_id` в переменных скрипта.
+5. Дайте скрипту права на выполнение:
+
+   ```bash
+   chmod +x check_*.sh
+   ```
+
 6. Запустите вручную для проверки:
+
    ```bash
    ./scripts/check_ssl.sh example.com 443
    ./scripts/check_http.sh example.com
    ./scripts/sudo_monitor.sh
+   ```
