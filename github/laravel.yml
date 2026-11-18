@@ -1,0 +1,99 @@
+
+name: Шаблон для деплоя приложения на Laravel
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Выбор репозитория
+        uses: actions/checkout@v6
+
+      - name: Настройка PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+
+      - name: Проверка синтаксиса PHP
+        run: |
+          find . \
+            -path './.git' -prune -o \
+            -path './vendor' -prune -o \
+            -type f -name '*.php' -print0 |
+            xargs -0 -r -n1 php -l
+
+      - name: Проверка Composer
+        run: composer validate --strict
+
+      - name: Установка зависимостей для тестирования
+        run: composer install --prefer-dist --no-interaction
+
+      - name: Запуск тестов
+        run: php artisan test
+
+      - name: Загрузка файлов по FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          server-dir: /var/www/example.ru/
+          exclude: |
+            **/.git*
+            **/.github/**
+            **/.env
+            **/vendor/**
+            **/storage/**
+            **/bootstrap/cache/**
+
+      - name: Проверка прав на файлы и папки
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /var/www/example.ru/
+
+            for dir in storage bootstrap/cache; do
+              if [ ! -d "$dir" ] || [ ! -w "$dir" ]; then
+                echo "Нет доступа на запись: $dir"
+                exit 1
+              fi
+            done
+
+      - name: Обновление зависимостей Composer
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /var/www/example.ru/
+
+            composer install \
+              --no-dev \
+              --prefer-dist \
+              --no-interaction \
+              --optimize-autoloader
+
+      - name: Очистка кеша Laravel
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /var/www/example.ru/
+
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
